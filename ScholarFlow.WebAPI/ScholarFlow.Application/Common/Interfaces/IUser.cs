@@ -1,0 +1,6 @@
+namespace ScholarFlow.Application.Common.Interfaces;
+
+public interface IUser
+{
+    string? Id { get; }
+}

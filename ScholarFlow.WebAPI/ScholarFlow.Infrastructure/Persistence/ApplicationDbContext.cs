@@ -1,0 +1,162 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using ScholarFlow.Domain.Entities;
+using ScholarFlow.Domain.Entities.Base;
+using ScholarFlow.Domain.Interfaces;
+using System.Linq.Expressions;
+
+namespace ScholarFlow.Infrastructure.Persistence;
+
+/// <summary>
+/// Application database context with Identity integration
+/// </summary>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IApplicationDbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+    }
+
+    // DbSets
+    public DbSet<StudentProfile> StudentProfiles { get; set; }
+    public DbSet<TeacherProfile> TeacherProfiles { get; set; }
+    public DbSet<AcademicStream> AcademicStreams { get; set; }
+    public DbSet<Subject> Subjects { get; set; }
+    public DbSet<Topic> Topics { get; set; }
+    public DbSet<SubTopic> SubTopics { get; set; }
+    public DbSet<Paper> Papers { get; set; }
+    public DbSet<Question> Questions { get; set; }
+    public DbSet<Option> Options { get; set; }
+    public DbSet<Explanation> Explanations { get; set; }
+    public DbSet<ExplanationSection> ExplanationSections { get; set; }
+    public DbSet<ExamSession> ExamSessions { get; set; }
+    public DbSet<UserResponse> UserResponses { get; set; }
+    
+    // Enhanced Entities
+    public DbSet<QuestionReview> QuestionReviews { get; set; }
+    public DbSet<EnhancedExamSettings> EnhancedExamSettings { get; set; }
+    public DbSet<StudentPerformanceAnalytics> StudentPerformanceAnalytics { get; set; }
+    public DbSet<QuestionBank> QuestionBanks { get; set; }
+    public DbSet<QuestionAttemptAnalytics> QuestionAttemptAnalytics { get; set; }
+    public DbSet<SecurityEvent> SecurityEvents { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=db39631;Trusted_Connection=true;MultipleActiveResultSets=true;");
+        }
+        
+        // Suppress the pending model changes warning for development
+        optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
+
+    public DbSet<BrowserLockdown> BrowserLockdowns { get; set; }
+    public DbSet<QuestionImport> QuestionImports { get; set; }
+    public DbSet<QuestionVersion> QuestionVersions { get; set; }
+    
+    // Expose Users from IdentityDbContext
+    public new DbSet<ApplicationUser> Users { get; set; }
+
+    // Interface implementation compatibility
+    public DbSet<AcademicStream> Streams => AcademicStreams;
+
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Apply all configurations from the Configurations folder
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Configure direct relationship between AcademicStream and Subject
+        modelBuilder.Entity<Subject>()
+            .HasOne(s => s.Stream)
+            .WithMany(st => st.Subjects)
+            .HasForeignKey(s => s.StreamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Fix foreign key cascade issues
+        modelBuilder.Entity<SecurityEvent>()
+            .HasOne(se => se.ExamSession)
+            .WithMany()
+            .HasForeignKey(se => se.ExamSessionId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<SecurityEvent>()
+            .HasOne(se => se.User)
+            .WithMany()
+            .HasForeignKey(se => se.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Global query filter for soft delete
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+            {
+                var parameter = Expression.Parameter(entityType.ClrType, "e");
+                var property = Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted));
+                var filter = Expression.Lambda(Expression.Equal(property, Expression.Constant(false)), parameter);
+                
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Override SaveChanges to automatically handle audit fields
+    /// </summary>
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        OnBeforeSaving();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    /// <summary>
+    /// Override SaveChangesAsync to automatically handle audit fields
+    /// </summary>
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        OnBeforeSaving();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// Automatically set audit fields before saving
+    /// </summary>
+    private void OnBeforeSaving()
+    {
+        var entries = ChangeTracker.Entries<IAuditable>();
+        var utcNow = DateTime.UtcNow;
+
+        foreach (var entry in entries)
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt = utcNow;
+                    // TODO: Set CreatedBy from current user context
+                    break;
+
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = utcNow;
+                    // TODO: Set UpdatedBy from current user context
+                    break;
+            }
+        }
+
+        // Handle soft delete
+        var deletedEntries = ChangeTracker.Entries<ISoftDeletable>()
+            .Where(e => e.State == EntityState.Deleted);
+
+        foreach (var entry in deletedEntries)
+        {
+            entry.State = EntityState.Modified;
+            entry.Entity.IsDeleted = true;
+            entry.Entity.DeletedAt = utcNow;
+            // TODO: Set DeletedBy from current user context
+        }
+    }
+}
