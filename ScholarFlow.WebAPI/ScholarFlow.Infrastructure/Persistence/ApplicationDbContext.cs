@@ -44,10 +44,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=db39631;Trusted_Connection=true;MultipleActiveResultSets=true;");
-        }
         
         // Suppress the pending model changes warning for development
         optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
@@ -67,6 +63,55 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+
+        // ===== DECIMAL PRECISION CONFIGURATIONS =====
+        #region Decimal Precision Configurations
+        
+        // EnhancedExamSettings
+        modelBuilder.Entity<EnhancedExamSettings>(entity =>
+        {
+            entity.Property(e => e.NegativeMarking).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.PassingScore).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.UnattemptedMarks).HasColumnType("decimal(5,2)");
+        });
+
+        // Question
+        modelBuilder.Entity<Question>(entity =>
+        {
+            entity.Property(e => e.AverageTimeToAnswer).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.CalculatedDifficulty).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.Marks).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.QualityScore).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.SuccessRate).HasColumnType("decimal(5,2)");
+        });
+
+        // QuestionAttemptAnalytics
+        modelBuilder.Entity<QuestionAttemptAnalytics>(entity =>
+        {
+            entity.Property(e => e.DifficultyMatch).HasColumnType("decimal(5,2)");
+        });
+
+        // QuestionBank  
+        modelBuilder.Entity<QuestionBank>(entity =>
+        {
+            entity.Property(e => e.AverageQualityScore).HasColumnType("decimal(3,2)");
+        });
+
+        // StudentPerformanceAnalytics
+        modelBuilder.Entity<StudentPerformanceAnalytics>(entity =>
+        {
+            entity.Property(e => e.AccuracyRate).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.AverageScore).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.AverageTimePerQuestion).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.ConsistencyScore).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.LearningPace).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.MasteryLevel).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.StrengthIndicator).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.WeaknessIndicator).HasColumnType("decimal(3,2)");
+        });
+        
+        #endregion
 
         // Apply all configurations from the Configurations folder
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -103,6 +148,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
             }
         }
+
+        modelBuilder.Entity<Paper>().HasQueryFilter(p => !p.IsDeleted);
+        modelBuilder.Entity<Subject>().HasQueryFilter(s => !s.IsDeleted);
+        modelBuilder.Entity<Question>().HasQueryFilter(q => !q.IsDeleted);
     }
 
     /// <summary>

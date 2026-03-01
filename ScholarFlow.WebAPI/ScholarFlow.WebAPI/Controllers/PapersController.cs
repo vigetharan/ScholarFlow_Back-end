@@ -67,7 +67,7 @@ public class PapersController : ControllerBase
     /// Create a new paper
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Teacher,Admin")]
+    [Authorize(Roles = "TEACHER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreatePaperCommand command, CancellationToken cancellationToken)
     {
         // Extract UserId from JWT token
@@ -91,7 +91,7 @@ public class PapersController : ControllerBase
     /// Delete a paper (soft delete)
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var command = new DeletePaperCommand { Id = id };

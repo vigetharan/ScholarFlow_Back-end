@@ -57,7 +57,7 @@ public class SubjectsController : ControllerBase
     /// Create a new subject
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Teacher,Admin")]
+    [Authorize(Roles = "TEACHER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateSubjectCommand command, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
@@ -71,7 +71,7 @@ public class SubjectsController : ControllerBase
     /// Update a subject
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = "Teacher,Admin")]
+    [Authorize(Roles = "TEACHER,ADMIN")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSubjectCommand command, CancellationToken cancellationToken)
     {
         command.Id = id;
@@ -86,7 +86,7 @@ public class SubjectsController : ControllerBase
     /// Delete a subject (soft delete)
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var command = new DeleteSubjectCommand { Id = id };

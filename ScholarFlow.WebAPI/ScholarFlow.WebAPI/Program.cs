@@ -1,38 +1,50 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using ScholarFlow.Application;
 using ScholarFlow.Infrastructure;
 using ScholarFlow.Infrastructure.Persistence;
-using ScholarFlow.Domain.Interfaces;
 using Scalar.AspNetCore;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// ===== 1. Controllers & Basic Services =====
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
+
+// ===== 2. CORS =====
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://your-frontend-domain.com") // Replace with your actual frontend origins
+        policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Important for cookies/credentials
+              .AllowCredentials();
     });
 });
-builder.Services.AddEndpointsApiExplorer();
 
-// Use native .NET OpenAPI support (compatible with .NET 10)
-builder.Services.AddOpenApi();
-
-// Add Application layer services (MediatR, FluentValidation)
+// ===== 3. Application Layer =====
 builder.Services.AddApplication();
 
-// Add Infrastructure layer services (DbContext, Repositories, Identity)
+// ===== 4. DbContext (FIXED - Correct Retry Syntax) =====
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")!,
+        sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null))
+    .LogTo(Console.WriteLine, LogLevel.Information));
+
+// ===== 5. Infrastructure Layer =====
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Add JWT Authentication
+// ===== 6. JWT Authentication =====
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(options =>
 {
@@ -57,76 +69,68 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Seed database (roles and users)
-using (var scope = app.Services.CreateScope())
+// ===== 7. DATABASE SEEDING (Single + Error Handling) =====
+try
 {
+    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
     await DbSeeder.SeedAllAsync(services);
+    Console.WriteLine("✅ Database seeded successfully!");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"❌ Seeding failed: {ex.Message}");
+    if (app.Environment.IsDevelopment())
+        throw;
 }
 
-// Configure the HTTP request pipeline
+// ===== 8. Development Tools =====
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    // Add Scalar UI for OpenAPI documentation with JWT support
     app.MapScalarApiReference(options =>
     {
         options.WithTitle("ScholarFlow API")
-            .WithTheme(ScalarTheme.Purple)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+               .WithTheme(ScalarTheme.Purple)
+               .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
 }
 
-if (app.Environment.IsDevelopment())
+// ===== 9. Middleware Pipeline =====
+if (!app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
-else
-{
-    // Add a global exception handler for production environments
-    app.UseExceptionHandler("/error"); 
-    // Also consider HSTS for production
+    app.UseExceptionHandler("/error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed academic data (temporarily disabled due to database issues)
-// using (var scope = app.Services.CreateScope())
-// {
-//     var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-//     await ScholarFlow.WebAPI.Data.AcademicSeeder.SeedAcademicDataAsync(context);
-// }
-
-// New endpoint for global error handling (optional, but good for structured errors)
+// ===== 10. Global Error Handler (FIXED Syntax) =====
 app.Map("/error", (HttpContext context) =>
 {
     var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
     var exception = exceptionHandlerPathFeature?.Error;
 
-    // Log the exception here
-    app.Logger.LogError(exception, "An unhandled exception occurred: {Message}", exception?.Message);
+    app.Logger.LogError(exception, "Unhandled exception: {Message}", exception?.Message);
 
-    // Return ProblemDetails (RFC 7807)
-    return Results.Problem(
-        title: "An unexpected error occurred",
-        detail: app.Environment.IsDevelopment() ? exception?.StackTrace : null,
-        statusCode: StatusCodes.Status500InternalServerError,
-        extensions: new Dictionary<string, object?>
+    var problemDetails = new ProblemDetails
+    {
+        Title = "Internal Server Error",
+        Detail = app.Environment.IsDevelopment() ? exception?.StackTrace : null,
+        Status = StatusCodes.Status500InternalServerError,
+        Type = "https://tools.ietf.org/html/rfc7807",
+        Extensions = new Dictionary<string, object?>
         {
-            { "traceId", System.Diagnostics.Activity.Current?.Id ?? context.TraceIdentifier },
-            { "type", "https://tools.ietf.org/html/rfc7807#section-3.1" } // Standard type
+            ["traceId"] = System.Diagnostics.Activity.Current?.Id ?? context.TraceIdentifier
         }
-    );
-}).ExcludeFromDescription(); // Exclude from OpenAPI docs
+    };
 
+    return Results.Problem(problemDetails);
+}).ExcludeFromDescription();
 
 app.Run();

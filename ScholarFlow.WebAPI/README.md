@@ -1,1 +1,1 @@
-# ScholarFlow.WebAPI
+dotnet run --launch-profile https

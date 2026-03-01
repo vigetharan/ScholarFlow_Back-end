@@ -57,7 +57,7 @@ public class SubTopicsController : ControllerBase
     /// Create a new subtopic
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Teacher,Admin")]
+    [Authorize(Roles = "TEACHER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateSubTopicCommand command, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
@@ -71,7 +71,7 @@ public class SubTopicsController : ControllerBase
     /// Update a subtopic
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = "Teacher,Admin")]
+    [Authorize(Roles = "TEACHER,ADMIN")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSubTopicCommand command, CancellationToken cancellationToken)
     {
         command.Id = id;
@@ -86,7 +86,7 @@ public class SubTopicsController : ControllerBase
     /// Delete a subtopic (soft delete)
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var command = new DeleteSubTopicCommand { Id = id };
