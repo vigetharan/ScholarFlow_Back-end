@@ -10,7 +10,7 @@ public class AcademicStream : AuditableEntity
     private string _name = string.Empty;
 
     /// <summary>
-    /// Name of the stream
+    /// Name of stream
     /// </summary>
     public string Name 
     { 
@@ -20,7 +20,7 @@ public class AcademicStream : AuditableEntity
     
     // Navigation properties - using backing fields to prevent lazy loading issues
     private readonly List<StudentProfile> _students = new();
-    private readonly List<Subject> _subjects = new();
+    private readonly List<StreamSubject> _streamSubjects = new();
 
     /// <summary>
     /// Students enrolled in this stream
@@ -28,11 +28,11 @@ public class AcademicStream : AuditableEntity
     public IReadOnlyCollection<StudentProfile> Students => _students.AsReadOnly();
 
     /// <summary>
-    /// Subjects directly associated with this stream
+    /// Stream-subject relationships (explicit join entity)
     /// </summary>
-    public IReadOnlyCollection<Subject> Subjects => _subjects.AsReadOnly();
+    public IReadOnlyCollection<StreamSubject> StreamSubjects => _streamSubjects.AsReadOnly();
 
     // Internal methods for EF Core
     internal void AddStudent(StudentProfile student) => _students.Add(student);
-    internal void AddSubject(Subject subject) => _subjects.Add(subject);
+    internal void AddStreamSubject(StreamSubject streamSubject) => _streamSubjects.Add(streamSubject);
 }

@@ -16,8 +16,5 @@ public class UpdateSubjectCommandValidator : AbstractValidator<UpdateSubjectComm
             .NotEmpty().WithMessage("Subject name is required")
             .MinimumLength(2).WithMessage("Subject name must be at least 2 characters")
             .MaximumLength(100).WithMessage("Subject name must not exceed 100 characters");
-
-        RuleFor(x => x.StreamId)
-            .NotEmpty().WithMessage("Stream must be selected");
     }
 }

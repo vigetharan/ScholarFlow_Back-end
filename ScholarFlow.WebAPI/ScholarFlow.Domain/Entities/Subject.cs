@@ -18,20 +18,15 @@ public class Subject : AuditableEntity
         set => _name = value?.Trim() ?? string.Empty;
     }
     
-    /// <summary>
-    /// Direct reference to the academic stream this subject belongs to
-    /// </summary>
-    public Guid StreamId { get; set; }
-    
     // Navigation properties with backing fields
-    private AcademicStream? _stream;
+    private readonly List<StreamSubject> _streamSubjects = new();
     private readonly List<Topic> _topics = new();
     private readonly List<Paper> _papers = new();
 
     /// <summary>
-    /// Academic stream this subject belongs to
+    /// Stream-subject relationships (explicit join entity)
     /// </summary>
-    public AcademicStream? Stream { get; set; }
+    public IReadOnlyCollection<StreamSubject> StreamSubjects => _streamSubjects.AsReadOnly();
 
     /// <summary>
     /// Topics under this subject
@@ -44,6 +39,7 @@ public class Subject : AuditableEntity
     public IReadOnlyCollection<Paper> Papers => _papers.AsReadOnly();
 
     // Internal methods for EF Core
+    internal void AddStreamSubject(StreamSubject streamSubject) => _streamSubjects.Add(streamSubject);
     internal void AddTopic(Topic topic) => _topics.Add(topic);
     internal void AddPaper(Paper paper) => _papers.Add(paper);
 }

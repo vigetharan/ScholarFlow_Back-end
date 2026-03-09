@@ -22,7 +22,8 @@ public class GetSubjectByIdQueryHandler : IRequestHandler<GetSubjectByIdQuery, R
     {
         // Get subject with streams
         var subject = await _context.Subjects
-            .Include(s => s.Stream)
+            .Include(s => s.StreamSubjects)
+                .ThenInclude(ss => ss.Stream)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
         if (subject == null)
@@ -35,8 +36,8 @@ public class GetSubjectByIdQueryHandler : IRequestHandler<GetSubjectByIdQuery, R
         {
             Id = subject.Id,
             Name = subject.Name,
-            StreamId = subject.StreamId,
-            StreamName = subject.Stream?.Name
+            StreamIds = subject.StreamSubjects.Select(ss => ss.StreamId).ToList(),
+            StreamNames = subject.StreamSubjects.Select(ss => ss.Stream.Name).ToList()
         };
 
         return Result<SubjectDto>.Success(dto);

@@ -10,5 +10,4 @@ namespace ScholarFlow.Application.Features.Subjects.Commands.CreateSubject;
 public class CreateSubjectCommand : IRequest<Result<SubjectDto>>
 {
     public string Name { get; set; } = string.Empty;
-    public Guid StreamId { get; set; } // Stream to associate with this subject
 }

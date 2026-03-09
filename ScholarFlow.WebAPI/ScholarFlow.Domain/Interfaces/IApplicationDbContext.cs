@@ -11,6 +11,7 @@ public interface IApplicationDbContext
 {
     DbSet<AcademicStream> Streams { get; }
     DbSet<Subject> Subjects { get; }
+    DbSet<StreamSubject> StreamSubjects { get; }
     DbSet<Topic> Topics { get; }
     DbSet<SubTopic> SubTopics { get; }
     DbSet<Paper> Papers { get; }

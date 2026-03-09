@@ -11,5 +11,4 @@ public class UpdateSubjectCommand : IRequest<Result<SubjectDto>>
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public Guid StreamId { get; set; } // Stream association
 }

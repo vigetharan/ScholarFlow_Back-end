@@ -27,40 +27,45 @@ public class AcademicController : ControllerBase
         try
         {
             var streams = await _context.Streams
-                .Include(s => s.Subjects)
-                .ThenInclude(s => s.Topics)
-                .ThenInclude(t => t.SubTopics)
                 .ToListAsync();
 
-            var result = streams.Select(stream => new
+            var result = new List<object>();
+            
+            // Debug: Check total StreamSubjects count
+            var totalStreamSubjects = await _context.StreamSubjects.CountAsync();
+            _logger.LogInformation($"Total StreamSubjects in database: {totalStreamSubjects}");
+            
+            foreach (var stream in streams)
             {
-                id = stream.Id.ToString(),
-                name = stream.Name,
-                subjects = stream.Subjects.Select(subject => new
+                // Load StreamSubjects separately to avoid filter conflicts
+                var streamSubjects = await _context.StreamSubjects
+                    .Include(ss => ss.Subject)
+                    .Where(ss => ss.StreamId == stream.Id && !ss.IsDeleted)
+                    .ToListAsync();
+
+                // Debug: Log stream and subject count
+                _logger.LogInformation($"Stream '{stream.Name}' (ID: {stream.Id}) has {streamSubjects.Count} subjects");
+
+                var streamResult = new
                 {
-                    id = subject.Id.ToString(),
-                    name = subject.Name,
-                    streamId = stream.Id.ToString(),
-                    topics = subject.Topics.Select(topic => new
+                    id = stream.Id.ToString(),
+                    name = stream.Name,
+                    subjects = streamSubjects.Select(ss => new
                     {
-                        id = topic.Id.ToString(),
-                        name = topic.TopicName,
-                        subjectId = subject.Id.ToString(),
-                        subTopics = topic.SubTopics.Select(subTopic => new
-                        {
-                            id = subTopic.Id.ToString(),
-                            name = subTopic.SubTopicName,
-                            topicId = topic.Id.ToString()
-                        }).ToList()
+                        id = ss.Subject.Id.ToString(),
+                        name = ss.Subject.Name,
+                        streamId = stream.Id.ToString()
                     }).ToList()
-                }).ToList()
-            }).ToList();
+                };
+                
+                result.Add(streamResult);
+            }
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading streams from database");
+            _logger.LogError(ex, "Error getting streams");
             return StatusCode(500, "Internal server error");
         }
     }
@@ -143,17 +148,10 @@ public class AcademicController : ControllerBase
     [HttpPost("subjects")]
     public async Task<IActionResult> CreateSubject([FromBody] CreateSubjectRequest request)
     {
-        var streamExists = await _context.Streams
-            .AnyAsync(s => s.Id == request.StreamId);
-
-        if (!streamExists)
-            return BadRequest("Stream not found");
-
         var subject = new Subject
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
-            StreamId = request.StreamId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -164,8 +162,7 @@ public class AcademicController : ControllerBase
         return Ok(new
         {
             id = subject.Id,
-            name = subject.Name,
-            streamId = subject.StreamId
+            name = subject.Name
         });
     }
 
@@ -173,21 +170,18 @@ public class AcademicController : ControllerBase
     [HttpPut("subjects/{id}")]
     public async Task<IActionResult> UpdateSubject(string id, [FromBody] UpdateSubjectRequest request)
     {
+        var subjectId = Guid.Parse(id);
+        var subject = await _context.Subjects.FindAsync(subjectId);
 
-            var subject = await _context.Subjects.FindAsync(id);
+        if (subject == null)
+            return NotFound();
 
-            if (subject == null)
-                return NotFound();
+        subject.Name = request.Name;
+        subject.UpdatedAt = DateTime.UtcNow;
 
-            subject.Name = request.Name;
-            subject.StreamId = request.StreamId;
-            subject.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(CancellationToken.None);
 
-            await _context.SaveChangesAsync(CancellationToken.None);
-
-            return Ok(new { id = subject.Id.ToString(), name = subject.Name, streamId = subject.StreamId.ToString() });
-        
-       
+        return Ok(new { id = subject.Id.ToString(), name = subject.Name });
     }
 
     // DELETE: api/academic/subjects/{id}
@@ -210,6 +204,91 @@ public class AcademicController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting subject");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    // POST: api/academic/streams/{streamId}/subjects/{subjectId}
+    [HttpPost("streams/{streamId}/subjects/{subjectId}")]
+    public async Task<IActionResult> AddSubjectToStream(string streamId, string subjectId)
+    {
+        try
+        {
+            var streamGuid = Guid.Parse(streamId);
+            var subjectGuid = Guid.Parse(subjectId);
+            
+            _logger.LogInformation($"Attempting to add subject {subjectGuid} to stream {streamGuid}");
+            
+            var stream = await _context.Streams
+                .FirstOrDefaultAsync(s => s.Id == streamGuid);
+                
+            var subject = await _context.Subjects.FindAsync(subjectGuid);
+            
+            if (stream == null || subject == null)
+            {
+                _logger.LogWarning($"Stream {streamGuid} or Subject {subjectGuid} not found");
+                return NotFound();
+            }
+            
+            // Check if the relationship already exists
+            var existingRelationship = await _context.StreamSubjects
+                .FirstOrDefaultAsync(ss => ss.StreamId == streamGuid && ss.SubjectId == subjectGuid);
+                
+            if (existingRelationship != null)
+            {
+                _logger.LogWarning($"Subject {subjectGuid} is already linked to stream {streamGuid}");
+                return BadRequest("Subject is already linked to this stream");
+            }
+            
+            // Create the relationship
+            var streamSubject = new StreamSubject
+            {
+                Id = Guid.NewGuid(),
+                StreamId = streamGuid,
+                SubjectId = subjectGuid,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+            
+            _logger.LogInformation($"Creating StreamSubject: ID={streamSubject.Id}, StreamId={streamSubject.StreamId}, SubjectId={streamSubject.SubjectId}");
+            
+            _context.StreamSubjects.Add(streamSubject);
+            var saveResult = await _context.SaveChangesAsync(CancellationToken.None);
+            
+            _logger.LogInformation($"SaveChanges result: {saveResult} rows affected");
+            
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding subject to stream");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    // DELETE: api/academic/streams/{streamId}/subjects/{subjectId}
+    [HttpDelete("streams/{streamId}/subjects/{subjectId}")]
+    public async Task<IActionResult> RemoveSubjectFromStream(string streamId, string subjectId)
+    {
+        try
+        {
+            var streamGuid = Guid.Parse(streamId);
+            var subjectGuid = Guid.Parse(subjectId);
+            
+            var streamSubject = await _context.StreamSubjects
+                .FirstOrDefaultAsync(ss => ss.StreamId == streamGuid && ss.SubjectId == subjectGuid);
+            
+            if (streamSubject == null)
+                return NotFound();
+            
+            _context.StreamSubjects.Remove(streamSubject);
+            await _context.SaveChangesAsync(CancellationToken.None);
+            
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing subject from stream");
             return StatusCode(500, "Internal server error");
         }
     }
@@ -383,13 +462,11 @@ public class UpdateStreamRequest
 public class CreateSubjectRequest
 {
     public string Name { get; set; } = string.Empty;
-    public Guid StreamId { get; set; }
 }
 
 public class UpdateSubjectRequest
 {
     public string Name { get; set; } = string.Empty;
-    public Guid StreamId { get; set; }
 }
 
 public class CreateTopicRequest

@@ -20,15 +20,16 @@ public class GetSubjectsQueryHandler : IRequestHandler<GetSubjectsQuery, Result<
 
     public async Task<Result<List<SubjectDto>>> Handle(GetSubjectsQuery request, CancellationToken cancellationToken)
     {
-        // Query subjects with their streams
+        // Query subjects with their stream relationships
         var query = _context.Subjects
-            .Include(s => s.Stream)
+            .Include(s => s.StreamSubjects)
+                .ThenInclude(ss => ss.Stream)
             .AsQueryable();
 
         // Filter by stream if provided
         if (request.StreamId.HasValue)
         {
-            query = query.Where(s => s.StreamId == request.StreamId.Value);
+            query = query.Where(s => s.StreamSubjects.Any(ss => ss.StreamId == request.StreamId.Value));
         }
 
         var subjects = await query
@@ -40,8 +41,8 @@ public class GetSubjectsQueryHandler : IRequestHandler<GetSubjectsQuery, Result<
         {
             Id = s.Id,
             Name = s.Name,
-            StreamId = s.StreamId,
-            StreamName = s.Stream?.Name
+            StreamIds = s.StreamSubjects.Select(ss => ss.StreamId).ToList(),
+            StreamNames = s.StreamSubjects.Select(ss => ss.Stream.Name).ToList()
         }).ToList();
 
         return Result<List<SubjectDto>>.Success(dtos);

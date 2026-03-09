@@ -21,12 +21,16 @@ public class GetStreamsQueryHandler : IRequestHandler<GetStreamsQuery, Result<Li
     public async Task<Result<List<StreamDto>>> Handle(GetStreamsQuery request, CancellationToken cancellationToken)
     {
         var streams = await _context.Streams
+            .Include(s => s.StreamSubjects)
+                .ThenInclude(ss => ss.Subject)
             .OrderBy(s => s.Name)
             .Select(s => new StreamDto
             {
                 Id = s.Id,
                 Name = s.Name,
-                CreatedAt = s.CreatedAt
+                CreatedAt = s.CreatedAt,
+                SubjectIds = s.StreamSubjects.Select(ss => ss.SubjectId).ToList(),
+                SubjectNames = s.StreamSubjects.Select(ss => ss.Subject.Name).ToList()
             })
             .ToListAsync(cancellationToken);
 

@@ -18,10 +18,16 @@ public class AcademicStreamConfiguration : AuditableEntityConfiguration<Academic
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 
+        // Configure one-to-many relationship with StreamSubject (explicit join entity)
+        builder.HasMany(s => s.StreamSubjects)
+            .WithOne(ss => ss.Stream)
+            .HasForeignKey(ss => ss.StreamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Configure backing fields for navigation properties
         builder.Metadata.FindNavigation(nameof(AcademicStream.Students))!
             .SetField("_students");
-        builder.Metadata.FindNavigation(nameof(AcademicStream.Subjects))!
-            .SetField("_subjects");
+        builder.Metadata.FindNavigation(nameof(AcademicStream.StreamSubjects))!
+            .SetField("_streamSubjects");
     }
 }

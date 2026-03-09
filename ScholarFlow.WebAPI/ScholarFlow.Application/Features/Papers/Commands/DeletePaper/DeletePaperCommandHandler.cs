@@ -24,6 +24,24 @@ public class DeletePaperCommandHandler : IRequestHandler<DeletePaperCommand, Res
             return Result<bool>.Failure("Paper not found");
         }
 
+        // Check permissions
+        if (request.UserRole == "ADMIN")
+        {
+            // Admin can delete any paper
+        }
+        else if (request.UserRole == "TEACHER")
+        {
+            // Teacher can only delete their own papers
+            if (paper.CreatedByTeacher != request.UserId)
+            {
+                return Result<bool>.Failure("You can only delete papers you created");
+            }
+        }
+        else
+        {
+            return Result<bool>.Failure("Unauthorized");
+        }
+
         paper.IsDeleted = true;
         paper.DeletedAt = DateTime.UtcNow;
 

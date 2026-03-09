@@ -29,7 +29,8 @@ public class UpdateQuestionCommandHandler : IRequestHandler<UpdateQuestionComman
             .Include(q => q.SubTopic)
                 .ThenInclude(st => st.Topic)
                     .ThenInclude(t => t.Subject)
-                        .ThenInclude(s => s.Stream)
+                        .ThenInclude(s => s.StreamSubjects)
+                            .ThenInclude(ss => ss.Stream)
             .FirstOrDefaultAsync(q => q.Id == request.Id, cancellationToken);
 
         if (question is null)
@@ -81,7 +82,8 @@ public class UpdateQuestionCommandHandler : IRequestHandler<UpdateQuestionComman
             SubTopicName     = question.SubTopic?.SubTopicName                       ?? string.Empty,
             TopicName        = question.SubTopic?.Topic?.TopicName                   ?? string.Empty,
             SubjectName      = question.SubTopic?.Topic?.Subject?.Name               ?? string.Empty,
-            StreamName       = question.SubTopic?.Topic?.Subject?.Stream?.Name       ?? string.Empty,
+            StreamName       = question.SubTopic?.Topic?.Subject?.StreamSubjects
+                                    .Select(ss => ss.Stream.Name).FirstOrDefault() ?? string.Empty,
             QuestionText     = question.QuestionText,
             QuestionImageUrl = question.QuestionImageUrl,
             Difficulty       = question.Difficulty,

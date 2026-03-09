@@ -21,23 +21,15 @@ public class UpdateSubjectCommandHandler : IRequestHandler<UpdateSubjectCommand,
 
     public async Task<Result<SubjectDto>> Handle(UpdateSubjectCommand request, CancellationToken cancellationToken)
     {
-        // Find subject
+        // Find subject with streams
         var subject = await _context.Subjects
-            .Include(s => s.Stream)
+            .Include(s => s.StreamSubjects)
+                .ThenInclude(ss => ss.Stream)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
         if (subject == null)
         {
             return Result<SubjectDto>.Failure("Subject not found");
-        }
-
-        // Check if stream exists
-        var stream = await _context.Streams
-            .FirstOrDefaultAsync(s => s.Id == request.StreamId, cancellationToken);
-
-        if (stream == null)
-        {
-            return Result<SubjectDto>.Failure("Stream not found");
         }
 
         // Check for duplicate name (exclude current subject)
@@ -50,9 +42,8 @@ public class UpdateSubjectCommandHandler : IRequestHandler<UpdateSubjectCommand,
             return Result<SubjectDto>.Failure($"Subject '{request.Name}' already exists");
         }
 
-        // Update subject
+        // Update subject name
         subject.Name = request.Name;
-        subject.StreamId = request.StreamId;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -61,8 +52,8 @@ public class UpdateSubjectCommandHandler : IRequestHandler<UpdateSubjectCommand,
         {
             Id = subject.Id,
             Name = subject.Name,
-            StreamId = request.StreamId,
-            StreamName = stream.Name
+            StreamIds = subject.StreamSubjects.Select(ss => ss.StreamId).ToList(),
+            StreamNames = subject.StreamSubjects.Select(ss => ss.Stream.Name).ToList()
         };
 
         return Result<SubjectDto>.Success(dto);

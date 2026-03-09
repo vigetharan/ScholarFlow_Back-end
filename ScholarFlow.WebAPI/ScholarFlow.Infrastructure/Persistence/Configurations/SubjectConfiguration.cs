@@ -14,22 +14,19 @@ public class SubjectConfiguration : AuditableEntityConfiguration<Subject>
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(s => s.StreamId)
-            .IsRequired();
-
         builder.HasIndex(s => s.Name)
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 
-        // Configure foreign key relationship
-        builder.HasOne(s => s.Stream)
-            .WithMany(st => st.Subjects)
-            .HasForeignKey(s => s.StreamId)
+        // Configure one-to-many relationship with StreamSubject (explicit join entity)
+        builder.HasMany(s => s.StreamSubjects)
+            .WithOne(ss => ss.Subject)
+            .HasForeignKey(ss => ss.SubjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure backing fields
-        builder.Metadata.FindNavigation(nameof(Subject.Stream))!
-            .SetField("_stream");
+        // Configure backing fields for navigation properties
+        builder.Metadata.FindNavigation(nameof(Subject.StreamSubjects))!
+            .SetField("_streamSubjects");
         builder.Metadata.FindNavigation(nameof(Subject.Topics))!
             .SetField("_topics");
         builder.Metadata.FindNavigation(nameof(Subject.Papers))!

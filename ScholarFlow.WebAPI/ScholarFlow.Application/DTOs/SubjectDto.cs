@@ -7,6 +7,6 @@ public class SubjectDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public Guid StreamId { get; set; }
-    public string StreamName { get; set; } = string.Empty;
+    public List<string> StreamNames { get; set; } = new();
+    public List<Guid> StreamIds { get; set; } = new();
 }

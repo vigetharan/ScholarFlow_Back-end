@@ -28,7 +28,8 @@ public class GetAllQuestionsQueryHandler
             .Include(q => q.SubTopic)
                 .ThenInclude(st => st.Topic)
                     .ThenInclude(t => t.Subject)
-                        .ThenInclude(s => s.Stream)
+                        .ThenInclude(s => s.StreamSubjects)
+                            .ThenInclude(ss => ss.Stream)
             .Include(q => q.Options)
             .Include(q => q.Explanations)
             .OrderByDescending(q => q.CreatedAt)
@@ -42,7 +43,8 @@ public class GetAllQuestionsQueryHandler
             SubTopicName     = q.SubTopic?.SubTopicName                       ?? string.Empty,
             TopicName        = q.SubTopic?.Topic?.TopicName                   ?? string.Empty,
             SubjectName      = q.SubTopic?.Topic?.Subject?.Name               ?? string.Empty,
-            StreamName       = q.SubTopic?.Topic?.Subject?.Stream?.Name       ?? string.Empty,
+            StreamName       = q.SubTopic?.Topic?.Subject?.StreamSubjects
+                                    .Select(ss => ss.Stream.Name).FirstOrDefault() ?? string.Empty,
             QuestionText     = q.QuestionText,
             QuestionImageUrl = q.QuestionImageUrl,
             Difficulty       = q.Difficulty,

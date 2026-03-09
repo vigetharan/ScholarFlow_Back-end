@@ -24,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<TeacherProfile> TeacherProfiles { get; set; }
     public DbSet<AcademicStream> AcademicStreams { get; set; }
     public DbSet<Subject> Subjects { get; set; }
+    public DbSet<StreamSubject> StreamSubjects { get; set; }
     public DbSet<Topic> Topics { get; set; }
     public DbSet<SubTopic> SubTopics { get; set; }
     public DbSet<Paper> Papers { get; set; }
@@ -116,13 +117,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         // Apply all configurations from the Configurations folder
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Configure direct relationship between AcademicStream and Subject
-        modelBuilder.Entity<Subject>()
-            .HasOne(s => s.Stream)
-            .WithMany(st => st.Subjects)
-            .HasForeignKey(s => s.StreamId)
-            .OnDelete(DeleteBehavior.Cascade);
-
+        // Note: StreamSubject relationships are now configured via separate configuration classes
+        // to use explicit join entity instead of automatic many-to-many
+        
         // Fix foreign key cascade issues
         modelBuilder.Entity<SecurityEvent>()
             .HasOne(se => se.ExamSession)

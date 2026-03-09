@@ -29,17 +29,26 @@ public static class AcademicSeeder
         await context.Streams.AddAsync(engineeringStream);
         await context.SaveChangesAsync(CancellationToken.None);
 
-        // Create Computer Science Subject
+        // Create Computer Science Subject (independent)
         var computerScienceSubject = new Subject
         {
             Id = Guid.NewGuid(),
             Name = "Computer Science",
-            StreamId = engineeringStream.Id,  // Direct relationship
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
         await context.Subjects.AddAsync(computerScienceSubject);
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        // Link Computer Science to Engineering Stream
+        var csEngineeringLink = new StreamSubject
+        {
+            Id = Guid.NewGuid(),
+            StreamId = engineeringStream.Id,
+            SubjectId = computerScienceSubject.Id
+        };
+        await context.StreamSubjects.AddAsync(csEngineeringLink);
         await context.SaveChangesAsync(CancellationToken.None);
 
         // Create Programming Topic
@@ -99,17 +108,26 @@ public static class AcademicSeeder
         await context.Streams.AddAsync(medicalStream);
         await context.SaveChangesAsync(CancellationToken.None);
 
-        // Create Biology Subject
+        // Create Biology Subject (independent)
         var biologySubject = new Subject
         {
             Id = Guid.NewGuid(),
             Name = "Biology",
-            StreamId = medicalStream.Id,  // Direct relationship
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
         await context.Subjects.AddAsync(biologySubject);
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        // Link Biology to Medical Stream
+        var biologyMedicalLink = new StreamSubject
+        {
+            Id = Guid.NewGuid(),
+            StreamId = medicalStream.Id,
+            SubjectId = biologySubject.Id
+        };
+        await context.StreamSubjects.AddAsync(biologyMedicalLink);
         await context.SaveChangesAsync(CancellationToken.None);
 
         // Create Anatomy Topic
