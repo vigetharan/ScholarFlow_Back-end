@@ -20,9 +20,10 @@ public class GetTopicsQueryHandler : IRequestHandler<GetTopicsQuery, Result<List
 
     public async Task<Result<List<TopicDto>>> Handle(GetTopicsQuery request, CancellationToken cancellationToken)
     {
-        // Query topics with subject
+        // Query topics with subject, filter out deleted ones
         var query = _context.Topics
             .Include(t => t.Subject)
+            .Where(t => !t.IsDeleted) // Only get non-deleted topics
             .AsQueryable();
 
         // Filter by subject if provided

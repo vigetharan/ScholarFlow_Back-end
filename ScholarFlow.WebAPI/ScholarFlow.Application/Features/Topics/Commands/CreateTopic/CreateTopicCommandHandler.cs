@@ -30,10 +30,11 @@ public class CreateTopicCommandHandler : IRequestHandler<CreateTopicCommand, Res
             return Result<TopicDto>.Failure("Subject not found");
         }
 
-        // Check for duplicate topic name in the same subject
+        // Check for duplicate topic name in the same subject (excluding deleted topics)
         var existingTopic = await _context.Topics
             .FirstOrDefaultAsync(t => t.SubjectId == request.SubjectId && 
-                                     t.TopicName.ToLower() == request.TopicName.ToLower(), 
+                                     t.TopicName.ToLower() == request.TopicName.ToLower() &&
+                                     !t.IsDeleted, // Only check non-deleted topics
                                 cancellationToken);
 
         if (existingTopic != null)
