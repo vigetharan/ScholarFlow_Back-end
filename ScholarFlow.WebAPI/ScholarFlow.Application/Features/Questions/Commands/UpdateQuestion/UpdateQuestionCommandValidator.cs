@@ -1,20 +1,14 @@
 using FluentValidation;
 
-namespace ScholarFlow.Application.Features.Questions.Commands.CreateQuestion;
+namespace ScholarFlow.Application.Features.Questions.Commands.UpdateQuestion;
 
 /// <summary>
-/// Validator for CreateQuestionCommand
+/// Validator for UpdateQuestionCommand
 /// </summary>
-public class CreateQuestionCommandValidator : AbstractValidator<CreateQuestionCommand>
+public class UpdateQuestionCommandValidator : AbstractValidator<UpdateQuestionCommand>
 {
-    public CreateQuestionCommandValidator()
+    public UpdateQuestionCommandValidator()
     {
-        RuleFor(x => x.PaperId)
-            .NotEmpty().WithMessage("Paper is required");
-
-        RuleFor(x => x.SubTopicId)
-            .NotEmpty().WithMessage("SubTopic is required");
-
         RuleFor(x => x.QuestionText)
             .NotEmpty().WithMessage("Question text is required")
             .MinimumLength(5).WithMessage("Question text must be at least 5 characters")
@@ -27,7 +21,7 @@ public class CreateQuestionCommandValidator : AbstractValidator<CreateQuestionCo
             .MaximumLength(500).WithMessage("Image URL must not exceed 500 characters")
             .When(x => !string.IsNullOrEmpty(x.QuestionImageUrl));
 
-        // Require exactly five options for each question and exactly one correct option
+        // Require exactly five options and exactly one correct option
         RuleFor(x => x.Options)
             .Must(options => options != null && options.Count == 5)
             .WithMessage("Exactly five options are required for each question");

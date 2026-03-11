@@ -36,13 +36,14 @@ public class UpdateQuestionCommandHandler : IRequestHandler<UpdateQuestionComman
         if (question is null)
             return Result<QuestionDto>.Failure("Question not found.");
 
-        // 2. Validate options
-        var correctCount = request.Options.Count(o => o.IsCorrect);
+        // 2. Validate options: require exactly five options and exactly one correct
+        var optionList = request.Options ?? new List<UpdateOptionDto>();
+        var correctCount = optionList.Count(o => o.IsCorrect);
+        if (optionList.Count != 5)
+            return Result<QuestionDto>.Failure("Exactly five options are required for this question type.");
+
         if (correctCount != 1)
             return Result<QuestionDto>.Failure("Exactly one correct answer is required.");
-
-        if (request.Options.Count < 4 || request.Options.Count > 5)
-            return Result<QuestionDto>.Failure("Questions must have between 4 and 5 options.");
 
         // 3. Update scalar fields
         question.QuestionText     = request.QuestionText;
@@ -65,7 +66,7 @@ public class UpdateQuestionCommandHandler : IRequestHandler<UpdateQuestionComman
             QuestionId = question.Id,
             OptionText = o.OptionText,
             IsCorrect  = o.IsCorrect,
-            OrderIndex = index + 1
+            OrderIndex = index
         }).ToList();
 
         await _context.Options.AddRangeAsync(newOptions, cancellationToken);
