@@ -53,13 +53,14 @@ public class CreateTopicCommandHandler : IRequestHandler<CreateTopicCommand, Res
         _context.Topics.Add(topic);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Map to DTO
+        // Map to DTO (new topic has zero subtopics)
         var dto = new TopicDto
         {
             Id = topic.Id,
             TopicName = topic.TopicName,
             SubjectId = topic.SubjectId,
-            SubjectName = subject.Name
+            SubjectName = subject.Name,
+            SubTopicCount = 0
         };
 
         return Result<TopicDto>.Success(dto);

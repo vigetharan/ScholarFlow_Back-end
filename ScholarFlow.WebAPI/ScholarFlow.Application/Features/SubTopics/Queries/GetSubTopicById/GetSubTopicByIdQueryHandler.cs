@@ -19,7 +19,7 @@ public class GetSubTopicByIdQueryHandler : IRequestHandler<GetSubTopicByIdQuery,
     {
         var subTopic = await _context.SubTopics
             .Include(st => st.Topic)
-            .FirstOrDefaultAsync(st => st.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(st => st.Id == request.Id && !st.IsDeleted, cancellationToken);
 
         if (subTopic == null)
         {

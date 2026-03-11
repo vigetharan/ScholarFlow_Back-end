@@ -36,13 +36,22 @@ public class GetSubjectsQueryHandler : IRequestHandler<GetSubjectsQuery, Result<
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
 
+        // Get non-deleted topic counts for all subjects in a single query
+        var subjectIds = subjects.Select(s => s.Id).ToList();
+        var counts = await _context.Topics
+            .Where(t => subjectIds.Contains(t.SubjectId) && !t.IsDeleted)
+            .GroupBy(t => t.SubjectId)
+            .Select(g => new { SubjectId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.SubjectId, x => x.Count, cancellationToken);
+
         // Map to DTOs
         var dtos = subjects.Select(s => new SubjectDto
         {
             Id = s.Id,
             Name = s.Name,
             StreamIds = s.StreamSubjects.Select(ss => ss.StreamId).ToList(),
-            StreamNames = s.StreamSubjects.Select(ss => ss.Stream.Name).ToList()
+            StreamNames = s.StreamSubjects.Select(ss => ss.Stream.Name).ToList(),
+            TopicCount = counts.ContainsKey(s.Id) ? counts[s.Id] : 0
         }).ToList();
 
         return Result<List<SubjectDto>>.Success(dtos);

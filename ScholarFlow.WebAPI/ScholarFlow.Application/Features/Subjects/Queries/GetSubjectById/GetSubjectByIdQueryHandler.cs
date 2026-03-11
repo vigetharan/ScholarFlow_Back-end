@@ -31,13 +31,18 @@ public class GetSubjectByIdQueryHandler : IRequestHandler<GetSubjectByIdQuery, R
             return Result<SubjectDto>.Failure("Subject not found");
         }
 
+        // Count non-deleted topics for this subject
+        var topicCount = await _context.Topics
+            .CountAsync(t => t.SubjectId == subject.Id && !t.IsDeleted, cancellationToken);
+
         // Map to DTO
         var dto = new SubjectDto
         {
             Id = subject.Id,
             Name = subject.Name,
             StreamIds = subject.StreamSubjects.Select(ss => ss.StreamId).ToList(),
-            StreamNames = subject.StreamSubjects.Select(ss => ss.Stream.Name).ToList()
+            StreamNames = subject.StreamSubjects.Select(ss => ss.Stream.Name).ToList(),
+            TopicCount = topicCount
         };
 
         return Result<SubjectDto>.Success(dto);

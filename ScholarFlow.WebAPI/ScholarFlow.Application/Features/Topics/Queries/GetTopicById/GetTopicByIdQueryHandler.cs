@@ -30,13 +30,18 @@ public class GetTopicByIdQueryHandler : IRequestHandler<GetTopicByIdQuery, Resul
             return Result<TopicDto>.Failure("Topic not found");
         }
 
+        // Count non-deleted subtopics for this topic
+        var subtopicCount = await _context.SubTopics
+            .CountAsync(st => st.TopicId == topic.Id && !st.IsDeleted, cancellationToken);
+
         // Map to DTO
         var dto = new TopicDto
         {
             Id = topic.Id,
             TopicName = topic.TopicName,
             SubjectId = topic.SubjectId,
-            SubjectName = topic.Subject?.Name ?? ""
+            SubjectName = topic.Subject?.Name ?? "",
+            SubTopicCount = subtopicCount
         };
 
         return Result<TopicDto>.Success(dto);

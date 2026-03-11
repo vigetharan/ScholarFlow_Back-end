@@ -9,4 +9,5 @@ public class TopicDto
     public string TopicName { get; set; } = string.Empty;
     public Guid SubjectId { get; set; }
     public string SubjectName { get; set; } = string.Empty;
+    public int SubTopicCount { get; set; } = 0;
 }

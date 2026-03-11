@@ -9,4 +9,5 @@ public class SubjectDto
     public string Name { get; set; } = string.Empty;
     public List<string> StreamNames { get; set; } = new();
     public List<Guid> StreamIds { get; set; } = new();
+    public int TopicCount { get; set; } = 0;
 }

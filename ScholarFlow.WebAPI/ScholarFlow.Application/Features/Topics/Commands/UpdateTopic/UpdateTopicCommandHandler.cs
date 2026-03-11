@@ -56,13 +56,17 @@ public class UpdateTopicCommandHandler : IRequestHandler<UpdateTopicCommand, Res
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Map to DTO
+        // Map to DTO (subtopic count unchanged by renaming/moving topic)
+        var subtopicCount = await _context.SubTopics
+            .CountAsync(st => st.TopicId == topic.Id && !st.IsDeleted, cancellationToken);
+
         var dto = new TopicDto
         {
             Id = topic.Id,
             TopicName = topic.TopicName,
             SubjectId = topic.SubjectId,
-            SubjectName = subject.Name
+            SubjectName = subject.Name,
+            SubTopicCount = subtopicCount
         };
 
         return Result<TopicDto>.Success(dto);

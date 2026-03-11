@@ -36,13 +36,22 @@ public class GetTopicsQueryHandler : IRequestHandler<GetTopicsQuery, Result<List
             .OrderBy(t => t.TopicName)
             .ToListAsync(cancellationToken);
 
+        // Aggregate non-deleted subtopic counts per topic to avoid N+1 queries
+        var topicIds = topics.Select(t => t.Id).ToList();
+        var subtopicCounts = await _context.SubTopics
+            .Where(st => topicIds.Contains(st.TopicId) && !st.IsDeleted)
+            .GroupBy(st => st.TopicId)
+            .Select(g => new { TopicId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.TopicId, x => x.Count, cancellationToken);
+
         // Map to DTOs
         var dtos = topics.Select(t => new TopicDto
         {
             Id = t.Id,
             TopicName = t.TopicName,
             SubjectId = t.SubjectId,
-            SubjectName = t.Subject?.Name ?? ""
+            SubjectName = t.Subject?.Name ?? "",
+            SubTopicCount = subtopicCounts.ContainsKey(t.Id) ? subtopicCounts[t.Id] : 0
         }).ToList();
 
         return Result<List<TopicDto>>.Success(dtos);
