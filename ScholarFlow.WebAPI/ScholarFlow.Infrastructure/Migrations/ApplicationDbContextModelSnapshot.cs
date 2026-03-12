@@ -22,21 +22,6 @@ namespace ScholarFlow.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("AcademicStreamSubject", b =>
-                {
-                    b.Property<Guid>("StreamsId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SubjectsId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("StreamsId", "SubjectsId");
-
-                    b.HasIndex("SubjectsId");
-
-                    b.ToTable("AcademicStreamSubject");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -766,6 +751,9 @@ namespace ScholarFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("TopicId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -792,6 +780,8 @@ namespace ScholarFlow.Infrastructure.Migrations
 
                     b.HasIndex("SubTopicId")
                         .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("TopicId");
 
                     b.HasIndex("SubTopicId", "Difficulty")
                         .HasFilter("[IsDeleted] = 0");
@@ -1225,10 +1215,8 @@ namespace ScholarFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("ScholarFlow.Domain.Entities.StreamSubject", b =>
                 {
-                    b.Property<Guid>("StreamId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SubjectId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1243,15 +1231,20 @@ namespace ScholarFlow.Infrastructure.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
                         .IsRequired()
-                        .HasColumnType("varbinary(max)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("StreamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1259,7 +1252,7 @@ namespace ScholarFlow.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("StreamId", "SubjectId");
+                    b.HasKey("Id");
 
                     b.HasIndex("StreamId");
 
@@ -1268,7 +1261,7 @@ namespace ScholarFlow.Infrastructure.Migrations
                     b.HasIndex("StreamId", "SubjectId")
                         .IsUnique();
 
-                    b.ToTable("StreamSubjects");
+                    b.ToTable("StreamSubjects", (string)null);
                 });
 
             modelBuilder.Entity("ScholarFlow.Domain.Entities.StudentPerformanceAnalytics", b =>
@@ -1665,21 +1658,6 @@ namespace ScholarFlow.Infrastructure.Migrations
                     b.ToTable("UserResponses");
                 });
 
-            modelBuilder.Entity("AcademicStreamSubject", b =>
-                {
-                    b.HasOne("ScholarFlow.Domain.Entities.AcademicStream", null)
-                        .WithMany()
-                        .HasForeignKey("StreamsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScholarFlow.Domain.Entities.Subject", null)
-                        .WithMany()
-                        .HasForeignKey("SubjectsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
@@ -1850,9 +1828,17 @@ namespace ScholarFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ScholarFlow.Domain.Entities.Topic", "Topic")
+                        .WithMany("Questions")
+                        .HasForeignKey("TopicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Paper");
 
                     b.Navigation("SubTopic");
+
+                    b.Navigation("Topic");
                 });
 
             modelBuilder.Entity("ScholarFlow.Domain.Entities.QuestionAttemptAnalytics", b =>
@@ -2149,6 +2135,8 @@ namespace ScholarFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("ScholarFlow.Domain.Entities.Topic", b =>
                 {
+                    b.Navigation("Questions");
+
                     b.Navigation("SubTopics");
                 });
 #pragma warning restore 612, 618
