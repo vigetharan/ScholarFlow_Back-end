@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarFlow.Application.Common.Models;
 using ScholarFlow.Application.DTOs;
+using ScholarFlow.Domain.Enums;
 using ScholarFlow.Domain.Interfaces;
 
 namespace ScholarFlow.Application.Features.Questions.Queries.GetQuestionsByPaper;
@@ -23,6 +24,8 @@ public class GetQuestionsByPaperQueryHandler : IRequestHandler<GetQuestionsByPap
         var questions = await _context.Questions
             .Include(q => q.SubTopic)
             .Include(q => q.Options)
+            .Include(q => q.Explanations)
+                .ThenInclude(e => e.Sections)
             .Where(q => q.PaperId == request.PaperId)
             .OrderBy(q => q.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -35,6 +38,12 @@ public class GetQuestionsByPaperQueryHandler : IRequestHandler<GetQuestionsByPap
             SubTopicName = q.SubTopic?.SubTopicName ?? "",
             QuestionText = q.QuestionText,
             QuestionImageUrl = q.QuestionImageUrl,
+            Explanation = q.Explanations
+                .SelectMany(e => e.Sections)
+                .Where(s => s.Type == ContentType.Text || s.Type == ContentType.Formula || s.Type == ContentType.Code)
+                .OrderBy(s => s.OrderIndex)
+                .Select(s => s.Content)
+                .FirstOrDefault() ?? q.Explanations.Select(e => e.Title).FirstOrDefault(),
             Difficulty = q.Difficulty,
             Marks = q.Marks,
             OrderIndex = q.OrderIndex,

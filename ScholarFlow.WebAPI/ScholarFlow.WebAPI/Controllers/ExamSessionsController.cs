@@ -13,7 +13,7 @@ namespace ScholarFlow.WebAPI.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/examsessions")]
-[Authorize(Roles = "Student")]
+[Authorize(Roles = "STUDENT,Student")]
 public class ExamSessionsController : ControllerBase
 {
     private readonly IMediator _mediator;
