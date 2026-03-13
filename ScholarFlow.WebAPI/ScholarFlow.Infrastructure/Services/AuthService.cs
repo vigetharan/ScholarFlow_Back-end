@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using ScholarFlow.Application.Common.Interfaces;
 using ScholarFlow.Application.Common.Models;
 using ScholarFlow.Domain.Entities;
+using ScholarFlow.Domain.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,17 +20,20 @@ public class AuthService : IAuthService
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IConfiguration _configuration;
+    private readonly IApplicationDbContext _context;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<IdentityRole<Guid>> roleManager,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _configuration = configuration;
+        _context = context;
     }
 
     public async Task<Result<AuthResponse>> RegisterAsync(string email, string password, string role)
@@ -133,6 +137,7 @@ public class AuthService : IAuthService
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var roles = await _userManager.GetRolesAsync(user);
+        var hasProfile = _context.StudentProfiles.Any(s => s.UserId == user.Id);
 
         // Add all user details as claims in the token
         var claims = new List<Claim>
@@ -142,7 +147,8 @@ public class AuthService : IAuthService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("userId", user.Id.ToString()),
             new Claim("username", user.UserName!),
-            new Claim("email", user.Email!)
+            new Claim("email", user.Email!),
+            new Claim("isProfileComplete", hasProfile ? "true" : "false")
         };
 
         // Add roles to claims

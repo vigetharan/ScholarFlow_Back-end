@@ -17,6 +17,8 @@ public class UpdateSubTopicCommandHandler : IRequestHandler<UpdateSubTopicComman
 
     public async Task<Result<SubTopicDto>> Handle(UpdateSubTopicCommand request, CancellationToken cancellationToken)
     {
+        var normalizedName = request.SubTopicName.Trim();
+
         var subTopic = await _context.SubTopics
             .FirstOrDefaultAsync(st => st.Id == request.Id, cancellationToken);
 
@@ -34,9 +36,9 @@ public class UpdateSubTopicCommandHandler : IRequestHandler<UpdateSubTopicComman
         }
 
         var existingSubTopic = await _context.SubTopics
-            .FirstOrDefaultAsync(st => st.TopicId == request.TopicId && 
-                                      st.SubTopicName.ToLower() == request.SubTopicName.ToLower() &&
-                                      st.Id != request.Id, 
+            .FirstOrDefaultAsync(st => st.TopicId == request.TopicId
+                                      && st.SubTopicName == normalizedName
+                                      && st.Id != request.Id,
                                 cancellationToken);
 
         if (existingSubTopic != null)
@@ -44,10 +46,17 @@ public class UpdateSubTopicCommandHandler : IRequestHandler<UpdateSubTopicComman
             return Result<SubTopicDto>.Failure($"SubTopic '{request.SubTopicName}' already exists in this topic");
         }
 
-        subTopic.SubTopicName = request.SubTopicName;
+        subTopic.SubTopicName = normalizedName;
         subTopic.TopicId = request.TopicId;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return Result<SubTopicDto>.Failure($"SubTopic '{normalizedName}' already exists in this topic");
+        }
 
         var dto = new SubTopicDto
         {

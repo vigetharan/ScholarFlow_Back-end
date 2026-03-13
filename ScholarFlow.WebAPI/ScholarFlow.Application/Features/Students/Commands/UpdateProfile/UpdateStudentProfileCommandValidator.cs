@@ -29,5 +29,12 @@ public class UpdateStudentProfileCommandValidator : AbstractValidator<UpdateStud
             .NotEmpty().WithMessage("Medium is required")
             .Must(m => new[] { "Tamil", "English", "Sinhala" }.Contains(m))
             .WithMessage("Medium must be Tamil, English, or Sinhala");
+
+        RuleFor(x => x.SelectedSubjectIds)
+            .NotNull().WithMessage("Selected subjects are required")
+            .Must(ids => ids != null && ids.Count == 3)
+            .WithMessage("Exactly 3 subjects must be selected")
+            .Must(ids => ids != null && ids.Distinct().Count() == ids.Count)
+            .WithMessage("Selected subjects must be unique");
     }
 }

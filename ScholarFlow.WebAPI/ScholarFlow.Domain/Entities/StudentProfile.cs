@@ -68,4 +68,9 @@ public class StudentProfile : BaseEntity
     /// Academic stream
     /// </summary>
     public AcademicStream Stream { get; set; } = null!;
+
+    /// <summary>
+    /// Student-selected subject mappings (restricted access set)
+    /// </summary>
+    public ICollection<StudentSubjectSelection> SelectedSubjects { get; set; } = new List<StudentSubjectSelection>();
 }

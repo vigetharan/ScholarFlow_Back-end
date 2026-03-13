@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<ExplanationSection> ExplanationSections { get; set; }
     public DbSet<ExamSession> ExamSessions { get; set; }
     public DbSet<UserResponse> UserResponses { get; set; }
+    public DbSet<StudentSubjectSelection> StudentSubjectSelections { get; set; }
     
     // Enhanced Entities
     public DbSet<QuestionReview> QuestionReviews { get; set; }
@@ -119,6 +120,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
         // Note: StreamSubject relationships are now configured via separate configuration classes
         // to use explicit join entity instead of automatic many-to-many
+
+        modelBuilder.Entity<StudentSubjectSelection>(entity =>
+        {
+            entity.HasOne(s => s.StudentProfile)
+                .WithMany(p => p.SelectedSubjects)
+                .HasForeignKey(s => s.StudentProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.Subject)
+                .WithMany()
+                .HasForeignKey(s => s.SubjectId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(s => new { s.StudentProfileId, s.SubjectId })
+                .IsUnique();
+        });
         
         // Fix foreign key cascade issues
         modelBuilder.Entity<SecurityEvent>()

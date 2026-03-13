@@ -12,7 +12,7 @@ namespace ScholarFlow.WebAPI.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/students")]
-[Authorize(Roles = "Student")]
+[Authorize(Roles = "STUDENT,Student")]
 public class StudentsController : ControllerBase
 {
     private readonly IMediator _mediator;

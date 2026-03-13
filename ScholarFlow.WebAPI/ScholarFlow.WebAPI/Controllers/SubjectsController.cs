@@ -30,7 +30,22 @@ public class SubjectsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetAll([FromQuery] Guid? streamId, CancellationToken cancellationToken)
     {
-        var query = new GetSubjectsQuery { StreamId = streamId };
+        Guid? studentUserId = null;
+
+        if (User.Identity?.IsAuthenticated == true && (User.IsInRole("STUDENT") || User.IsInRole("Student")))
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (Guid.TryParse(userIdClaim, out var parsedUserId))
+            {
+                studentUserId = parsedUserId;
+            }
+        }
+
+        var query = new GetSubjectsQuery
+        {
+            StreamId = streamId,
+            StudentUserId = studentUserId
+        };
         var result = await _mediator.Send(query, cancellationToken);
 
         return result.IsSuccess 

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarFlow.Application.Common.Models;
 using ScholarFlow.Application.DTOs;
+using ScholarFlow.Domain.Entities;
 using ScholarFlow.Domain.Interfaces;
 
 namespace ScholarFlow.Application.Features.Students.Commands.UpdateProfile;
@@ -38,6 +39,18 @@ public class UpdateStudentProfileCommandHandler : IRequestHandler<UpdateStudentP
             return Result<StudentProfileDto>.Failure("Stream not found");
         }
 
+        // Validate selected subjects belong to the selected stream
+        var validSubjectIds = await _context.StreamSubjects
+            .Where(ss => ss.StreamId == request.StreamId && request.SelectedSubjectIds.Contains(ss.SubjectId))
+            .Select(ss => ss.SubjectId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (validSubjectIds.Count != request.SelectedSubjectIds.Distinct().Count())
+        {
+            return Result<StudentProfileDto>.Failure("One or more selected subjects are invalid for this stream");
+        }
+
         // Update profile
         profile.FullName = request.FullName;
         profile.StreamId = request.StreamId;
@@ -45,7 +58,33 @@ public class UpdateStudentProfileCommandHandler : IRequestHandler<UpdateStudentP
         profile.District = request.District;
         profile.Medium = request.Medium;
 
+        // Replace selected subject mappings
+        var existingSelections = await _context.StudentSubjectSelections
+            .Where(ss => ss.StudentProfileId == profile.Id)
+            .ToListAsync(cancellationToken);
+
+        _context.StudentSubjectSelections.RemoveRange(existingSelections);
+
+        var newSelections = request.SelectedSubjectIds.Distinct().Select(subjectId => new StudentSubjectSelection
+        {
+            Id = Guid.NewGuid(),
+            StudentProfileId = profile.Id,
+            SubjectId = subjectId
+        }).ToList();
+
+        _context.StudentSubjectSelections.AddRange(newSelections);
+
         await _context.SaveChangesAsync(cancellationToken);
+
+        var selectedSubjects = await _context.Subjects
+            .Where(s => request.SelectedSubjectIds.Contains(s.Id))
+            .OrderBy(s => s.Name)
+            .Select(s => new EnrolledSubjectDto
+            {
+                Id = s.Id,
+                Name = s.Name
+            })
+            .ToListAsync(cancellationToken);
 
         // Map to DTO
         var dto = new StudentProfileDto
@@ -56,7 +95,8 @@ public class UpdateStudentProfileCommandHandler : IRequestHandler<UpdateStudentP
             StreamName = stream.Name,
             Batch = profile.Batch,
             District = profile.District,
-            Medium = profile.Medium
+            Medium = profile.Medium,
+            EnrolledSubjects = selectedSubjects
         };
 
         return Result<StudentProfileDto>.Success(dto);

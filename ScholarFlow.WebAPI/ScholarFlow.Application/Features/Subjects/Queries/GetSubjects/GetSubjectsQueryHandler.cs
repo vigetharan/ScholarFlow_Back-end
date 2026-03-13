@@ -32,6 +32,24 @@ public class GetSubjectsQueryHandler : IRequestHandler<GetSubjectsQuery, Result<
             query = query.Where(s => s.StreamSubjects.Any(ss => ss.StreamId == request.StreamId.Value));
         }
 
+        // If this is a student request, restrict subjects to selected subjects in the profile.
+        if (request.StudentUserId.HasValue)
+        {
+            var profile = await _context.StudentProfiles
+                .FirstOrDefaultAsync(p => p.UserId == request.StudentUserId.Value, cancellationToken);
+
+            if (profile != null)
+            {
+                var selectedSubjectIds = await _context.StudentSubjectSelections
+                    .Where(ss => ss.StudentProfileId == profile.Id)
+                    .Select(ss => ss.SubjectId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                query = query.Where(s => selectedSubjectIds.Contains(s.Id));
+            }
+        }
+
         var subjects = await query
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);

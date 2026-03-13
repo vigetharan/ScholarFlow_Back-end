@@ -10,4 +10,5 @@ namespace ScholarFlow.Application.Features.Subjects.Queries.GetSubjects;
 public class GetSubjectsQuery : IRequest<Result<List<SubjectDto>>>
 {
     public Guid? StreamId { get; set; }
+    public Guid? StudentUserId { get; set; }
 }
