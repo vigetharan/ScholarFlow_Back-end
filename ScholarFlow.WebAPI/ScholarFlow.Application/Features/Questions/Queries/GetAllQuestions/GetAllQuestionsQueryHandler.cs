@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarFlow.Application.Common.Models;
 using ScholarFlow.Application.DTOs;
 using ScholarFlow.Domain.Entities;
+using ScholarFlow.Domain.Enums;
 using ScholarFlow.Domain.Interfaces;
 
 namespace ScholarFlow.Application.Features.Questions.Queries.GetAllQuestions;
@@ -32,6 +33,7 @@ public class GetAllQuestionsQueryHandler
                             .ThenInclude(ss => ss.Stream)
             .Include(q => q.Options)
             .Include(q => q.Explanations)
+                .ThenInclude(e => e.Sections)
             .OrderByDescending(q => q.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -60,6 +62,12 @@ public class GetAllQuestionsQueryHandler
             FlagReason       = q.FlagReason,
             UsageCount       = q.UsageCount,
             SuccessRate      = q.SuccessRate,
+            Explanation      = q.Explanations
+                .SelectMany(e => e.Sections)
+                .Where(s => s.Type == ContentType.Text || s.Type == ContentType.Formula || s.Type == ContentType.Code)
+                .OrderBy(s => s.OrderIndex)
+                .Select(s => s.Content)
+                .FirstOrDefault() ?? q.Explanations.Select(e => e.Title).FirstOrDefault(),
             Options          = q.Options.Select(o => new OptionDto
             {
                 Id         = o.Id,

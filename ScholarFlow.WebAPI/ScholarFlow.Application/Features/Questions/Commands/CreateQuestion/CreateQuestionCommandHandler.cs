@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarFlow.Application.Common.Models;
 using ScholarFlow.Application.DTOs;
 using ScholarFlow.Domain.Entities;
+using ScholarFlow.Domain.Enums;
 using ScholarFlow.Domain.Interfaces;
 
 namespace ScholarFlow.Application.Features.Questions.Commands.CreateQuestion;
@@ -81,6 +82,32 @@ public class CreateQuestionCommandHandler : IRequestHandler<CreateQuestionComman
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Explanation))
+        {
+            var explanationText = request.Explanation.Trim();
+            var explanationTitle = explanationText.Length <= 200
+                ? explanationText
+                : explanationText[..200];
+            var explanation = new Explanation
+            {
+                Id = Guid.NewGuid(),
+                QuestionId = question.Id,
+                AuthorId = paper.CreatedByTeacher,
+                Title = explanationTitle
+            };
+
+            _context.Explanations.Add(explanation);
+
+            _context.ExplanationSections.Add(new ExplanationSection
+            {
+                Id = Guid.NewGuid(),
+                ExplanationId = explanation.Id,
+                Type = ContentType.Text,
+                Content = explanationText,
+                OrderIndex = 0
+            });
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         // Map to DTO
@@ -92,6 +119,9 @@ public class CreateQuestionCommandHandler : IRequestHandler<CreateQuestionComman
             SubTopicName = subTopic.SubTopicName,
             QuestionText = question.QuestionText,
             QuestionImageUrl = question.QuestionImageUrl,
+            Explanation = string.IsNullOrWhiteSpace(request.Explanation)
+                ? null
+                : request.Explanation.Trim(),
             Difficulty = question.Difficulty,
             Marks = question.Marks,
             OrderIndex = question.OrderIndex,

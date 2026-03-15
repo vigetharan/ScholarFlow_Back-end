@@ -27,6 +27,10 @@ public class CreateQuestionCommandValidator : AbstractValidator<CreateQuestionCo
             .MaximumLength(500).WithMessage("Image URL must not exceed 500 characters")
             .When(x => !string.IsNullOrEmpty(x.QuestionImageUrl));
 
+        RuleFor(x => x.Explanation)
+            .MaximumLength(2000).WithMessage("Explanation must not exceed 2000 characters")
+            .When(x => !string.IsNullOrWhiteSpace(x.Explanation));
+
         // Require exactly five options for each question and exactly one correct option
         RuleFor(x => x.Options)
             .Must(options => options != null && options.Count == 5)
