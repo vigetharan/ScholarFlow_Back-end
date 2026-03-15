@@ -25,7 +25,14 @@ public class GetAllQuestionsQueryHandler
         GetAllQuestionsQuery request,
         CancellationToken cancellationToken)
     {
-        var questions = await _context.Questions
+        IQueryable<Question> questionsQuery = _context.Questions;
+
+        if (request.PaperId.HasValue)
+        {
+            questionsQuery = questionsQuery.Where(q => q.PaperId == request.PaperId.Value);
+        }
+
+        questionsQuery = questionsQuery
             .Include(q => q.SubTopic)
                 .ThenInclude(st => st.Topic)
                     .ThenInclude(t => t.Subject)
@@ -33,7 +40,9 @@ public class GetAllQuestionsQueryHandler
                             .ThenInclude(ss => ss.Stream)
             .Include(q => q.Options)
             .Include(q => q.Explanations)
-                .ThenInclude(e => e.Sections)
+                .ThenInclude(e => e.Sections);
+
+        var questions = await questionsQuery
             .OrderByDescending(q => q.CreatedAt)
             .ToListAsync(cancellationToken);
 

@@ -70,9 +70,9 @@ public class QuestionsController : ControllerBase
     ///Get all Questions
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] Guid? paperId, CancellationToken cancellationToken)
     {
-        var query = new GetAllQuestionsQuery();
+        var query = new GetAllQuestionsQuery { PaperId = paperId };
         var result = await _mediator.Send(query, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(new { error = result.ErrorMessage });
     }

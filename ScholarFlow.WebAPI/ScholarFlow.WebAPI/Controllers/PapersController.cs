@@ -6,7 +6,9 @@ using ScholarFlow.Application.Features.Papers.Commands.DeletePaper;
 using ScholarFlow.Application.Features.Papers.Commands.UpdatePaper;
 using ScholarFlow.Application.Features.Papers.Queries.GetPaperById;
 using ScholarFlow.Application.Features.Papers.Queries.GetPapers;
+using ScholarFlow.Domain.Entities;
 using ScholarFlow.Domain.Enums;
+using Microsoft.AspNetCore.Identity;
 
 namespace ScholarFlow.WebAPI.Controllers;
 
@@ -18,10 +20,12 @@ namespace ScholarFlow.WebAPI.Controllers;
 public class PapersController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public PapersController(IMediator mediator)
+    public PapersController(IMediator mediator, UserManager<ApplicationUser> userManager)
     {
         _mediator = mediator;
+        _userManager = userManager;
     }
 
     /// <summary>
@@ -33,6 +37,7 @@ public class PapersController : ControllerBase
         [FromQuery] Guid? subjectId, 
         [FromQuery] int? year,
         [FromQuery] PaperType? type,
+        [FromQuery] bool? adminCreatedOnly,
         CancellationToken cancellationToken)
     {
         var query = new GetPapersQuery 
@@ -43,6 +48,13 @@ public class PapersController : ControllerBase
         };
         
         var result = await _mediator.Send(query, cancellationToken);
+
+        if (result.IsSuccess && adminCreatedOnly == true)
+        {
+            var adminUsers = await _userManager.GetUsersInRoleAsync("ADMIN");
+            var adminIds = adminUsers.Select(u => u.Id).ToHashSet();
+            result.Data = result.Data.Where(p => adminIds.Contains(p.CreatedByTeacher)).ToList();
+        }
 
         return result.IsSuccess 
             ? Ok(result.Data) 
