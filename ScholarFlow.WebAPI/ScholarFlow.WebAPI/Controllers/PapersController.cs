@@ -37,14 +37,27 @@ public class PapersController : ControllerBase
         [FromQuery] Guid? subjectId, 
         [FromQuery] int? year,
         [FromQuery] PaperType? type,
+        [FromQuery] string? teacherCode,
         [FromQuery] bool? adminCreatedOnly,
         CancellationToken cancellationToken)
     {
+        Guid? studentUserId = null;
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (!string.IsNullOrWhiteSpace(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+            {
+                studentUserId = parsedUserId;
+            }
+        }
+
         var query = new GetPapersQuery 
         { 
+            StudentUserId = studentUserId,
             SubjectId = subjectId,
             Year = year,
-            Type = type
+            Type = type,
+            TeacherCode = teacherCode
         };
         
         var result = await _mediator.Send(query, cancellationToken);
@@ -88,6 +101,16 @@ public class PapersController : ControllerBase
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized(new { error = "Invalid user token" });
+        }
+
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+            ?? User.FindFirst("role")?.Value
+            ?? string.Empty;
+
+        if (string.Equals(userRole, "TEACHER", StringComparison.OrdinalIgnoreCase)
+            && command.Type != PaperType.ModelPaper)
+        {
+            return BadRequest(new { error = "Teachers can only create Model Papers" });
         }
 
         // Set creator

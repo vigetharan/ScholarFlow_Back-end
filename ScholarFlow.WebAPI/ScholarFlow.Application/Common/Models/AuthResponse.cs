@@ -7,6 +7,8 @@ public class AuthResponse
 {
     public string Token { get; set; } = string.Empty;
     public UserDto User { get; set; } = null!;
+    public bool RequiresApproval { get; set; }
+    public string? ApprovalStatus { get; set; }
 }
 
 /// <summary>
@@ -18,4 +20,5 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public string? TeacherCode { get; set; }
 }

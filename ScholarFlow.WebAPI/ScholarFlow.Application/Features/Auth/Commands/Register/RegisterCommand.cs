@@ -11,4 +11,8 @@ public class RegisterCommand : IRequest<Result<AuthResponse>>
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string Role { get; set; } = "Student"; // Default role
+    public string? FullName { get; set; }
+    public string? Qualification { get; set; }
+    public Guid? SubjectId { get; set; }
+    public string? PhoneNumber { get; set; }
 }

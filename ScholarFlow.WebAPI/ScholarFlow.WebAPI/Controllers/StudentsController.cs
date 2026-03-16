@@ -1,8 +1,11 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScholarFlow.Application.Features.Students.Commands.ConnectTeacher;
 using ScholarFlow.Application.Features.Students.Commands.CreateProfile;
+using ScholarFlow.Application.Features.Students.Commands.DisconnectTeacher;
 using ScholarFlow.Application.Features.Students.Commands.UpdateProfile;
+using ScholarFlow.Application.Features.Students.Queries.GetConnectedTeachers;
 using ScholarFlow.Application.Features.Students.Queries.GetProfile;
 
 namespace ScholarFlow.WebAPI.Controllers;
@@ -102,4 +105,86 @@ public class StudentsController : ControllerBase
 
         return Ok(result.Data);
     }
+
+    /// <summary>
+    /// Submit access request to a teacher via teacher code
+    /// </summary>
+    [HttpPost("teachers/connect")]
+    public async Task<IActionResult> ConnectTeacher([FromBody] ConnectTeacherRequest request, CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid user token" });
+        }
+
+        var command = new ConnectTeacherCommand
+        {
+            StudentUserId = userId,
+            TeacherCode = request.TeacherCode ?? string.Empty,
+        };
+
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Get all teachers connected to current student
+    /// </summary>
+    [HttpGet("teachers")]
+    public async Task<IActionResult> GetConnectedTeachers(CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid user token" });
+        }
+
+        var query = new GetConnectedTeachersQuery { StudentUserId = userId };
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Disconnect teacher from current student
+    /// </summary>
+    [HttpDelete("teachers/{teacherUserId:guid}")]
+    public async Task<IActionResult> DisconnectTeacher(Guid teacherUserId, CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid user token" });
+        }
+
+        var command = new DisconnectTeacherCommand
+        {
+            StudentUserId = userId,
+            TeacherUserId = teacherUserId,
+        };
+
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
+        return NoContent();
+    }
+}
+
+public class ConnectTeacherRequest
+{
+    public string? TeacherCode { get; set; }
 }

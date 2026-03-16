@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarFlow.Application.Common.Models;
 using ScholarFlow.Application.DTOs;
+using ScholarFlow.Domain.Enums;
 using ScholarFlow.Domain.Interfaces;
 
 namespace ScholarFlow.Application.Features.Papers.Queries.GetPapers;
@@ -37,6 +38,39 @@ public class GetPapersQueryHandler : IRequestHandler<GetPapersQuery, Result<List
         if (request.Type.HasValue)
         {
             query = query.Where(p => p.Type == request.Type.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.TeacherCode))
+        {
+            var normalizedCode = request.TeacherCode.Trim().ToUpperInvariant();
+            var teacherUserId = await _context.TeacherProfiles
+                .Where(t => t.TeacherCode == normalizedCode && t.Status == TeacherRegistrationStatus.Accepted)
+                .Select(t => (Guid?)t.UserId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!teacherUserId.HasValue)
+            {
+                return Result<List<PaperDto>>.Success(new List<PaperDto>());
+            }
+
+            if (!request.StudentUserId.HasValue)
+            {
+                return Result<List<PaperDto>>.Success(new List<PaperDto>());
+            }
+
+            var hasApprovedAccess = await _context.StudentTeacherConnections
+                .AnyAsync(
+                    c => c.StudentUserId == request.StudentUserId.Value
+                         && c.TeacherUserId == teacherUserId.Value
+                         && c.Status == StudentTeacherConnectionStatus.Approved,
+                    cancellationToken);
+
+            if (!hasApprovedAccess)
+            {
+                return Result<List<PaperDto>>.Success(new List<PaperDto>());
+            }
+
+            query = query.Where(p => p.CreatedByTeacher == teacherUserId.Value);
         }
 
         var dtos = await query

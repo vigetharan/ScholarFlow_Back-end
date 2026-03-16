@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ScholarFlow.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ScholarFlow.Infrastructure.Persistence;
 namespace ScholarFlow.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260316053907_AddTeacherApprovalWorkflow")]
+    partial class AddTeacherApprovalWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1431,43 +1434,6 @@ namespace ScholarFlow.Infrastructure.Migrations
                     b.ToTable("StudentSubjectSelections");
                 });
 
-            modelBuilder.Entity("ScholarFlow.Domain.Entities.StudentTeacherConnection", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("ConnectedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Pending");
-
-                    b.Property<Guid>("StudentUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TeacherUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("TeacherUserId");
-
-                    b.HasIndex("StudentUserId", "TeacherUserId")
-                        .IsUnique();
-
-                    b.ToTable("StudentTeacherConnections");
-                });
-
             modelBuilder.Entity("ScholarFlow.Domain.Entities.SubTopic", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2108,25 +2074,6 @@ namespace ScholarFlow.Infrastructure.Migrations
                     b.Navigation("StudentProfile");
 
                     b.Navigation("Subject");
-                });
-
-            modelBuilder.Entity("ScholarFlow.Domain.Entities.StudentTeacherConnection", b =>
-                {
-                    b.HasOne("ScholarFlow.Domain.Entities.ApplicationUser", "StudentUser")
-                        .WithMany()
-                        .HasForeignKey("StudentUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScholarFlow.Domain.Entities.ApplicationUser", "TeacherUser")
-                        .WithMany()
-                        .HasForeignKey("TeacherUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("StudentUser");
-
-                    b.Navigation("TeacherUser");
                 });
 
             modelBuilder.Entity("ScholarFlow.Domain.Entities.SubTopic", b =>

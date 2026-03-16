@@ -23,5 +23,23 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Role)
             .Must(role => new[] { "Admin", "Teacher", "Student" }.Contains(role))
             .WithMessage("Role must be Admin, Teacher, or Student");
+
+        When(x => string.Equals(x.Role, "Teacher", StringComparison.OrdinalIgnoreCase), () =>
+        {
+            RuleFor(x => x.FullName)
+                .NotEmpty().WithMessage("Full name is required for teacher registration")
+                .MaximumLength(100).WithMessage("Full name must not exceed 100 characters");
+
+            RuleFor(x => x.Qualification)
+                .NotEmpty().WithMessage("Qualification is required for teacher registration")
+                .MaximumLength(200).WithMessage("Qualification must not exceed 200 characters");
+
+            RuleFor(x => x.SubjectId)
+                .NotEmpty().WithMessage("Subject is required for teacher registration");
+
+            RuleFor(x => x.PhoneNumber)
+                .NotEmpty().WithMessage("Phone number is required for teacher registration")
+                .MaximumLength(20).WithMessage("Phone number must not exceed 20 characters");
+        });
     }
 }

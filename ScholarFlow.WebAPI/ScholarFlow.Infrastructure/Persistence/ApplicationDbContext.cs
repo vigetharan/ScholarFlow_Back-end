@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using ScholarFlow.Domain.Entities;
 using ScholarFlow.Domain.Entities.Base;
+using ScholarFlow.Domain.Enums;
 using ScholarFlow.Domain.Interfaces;
 using System.Linq.Expressions;
 
@@ -35,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<ExamSession> ExamSessions { get; set; }
     public DbSet<UserResponse> UserResponses { get; set; }
     public DbSet<StudentSubjectSelection> StudentSubjectSelections { get; set; }
+    public DbSet<StudentTeacherConnection> StudentTeacherConnections { get; set; }
     
     // Enhanced Entities
     public DbSet<QuestionReview> QuestionReviews { get; set; }
@@ -135,6 +137,32 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
             entity.HasIndex(s => new { s.StudentProfileId, s.SubjectId })
                 .IsUnique();
+        });
+
+        modelBuilder.Entity<StudentTeacherConnection>(entity =>
+        {
+            entity.Property(c => c.ConnectedAt).HasColumnType("datetime2");
+            entity.Property(c => c.ReviewedAt).HasColumnType("datetime2");
+            entity.Property(c => c.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired()
+                .HasDefaultValue(StudentTeacherConnectionStatus.Pending);
+
+            entity.HasOne(c => c.StudentUser)
+                .WithMany()
+                .HasForeignKey(c => c.StudentUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(c => c.TeacherUser)
+                .WithMany()
+                .HasForeignKey(c => c.TeacherUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(c => new { c.StudentUserId, c.TeacherUserId })
+                .IsUnique();
+
+            entity.HasIndex(c => c.Status);
         });
         
         // Fix foreign key cascade issues

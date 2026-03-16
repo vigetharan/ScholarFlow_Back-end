@@ -11,6 +11,8 @@ public class UpdateTeacherProfileCommand : IRequest<Result<TeacherProfileDto>>
 {
     public Guid UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
-    public string? Qualification { get; set; }
+    public string Qualification { get; set; } = string.Empty;
     public string? Bio { get; set; }
+    public Guid SubjectId { get; set; }
+    public string PhoneNumber { get; set; } = string.Empty;
 }

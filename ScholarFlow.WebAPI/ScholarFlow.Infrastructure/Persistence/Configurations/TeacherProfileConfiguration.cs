@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScholarFlow.Domain.Entities;
+using ScholarFlow.Domain.Enums;
 
 namespace ScholarFlow.Infrastructure.Persistence.Configurations;
 
@@ -21,13 +22,43 @@ public class TeacherProfileConfiguration : IEntityTypeConfiguration<TeacherProfi
         builder.Property(t => t.Bio)
             .HasMaxLength(2000);
 
+        builder.Property(t => t.PhoneNumber)
+            .IsRequired()
+            .HasMaxLength(20);
+
+        builder.Property(t => t.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired()
+            .HasDefaultValue(TeacherRegistrationStatus.Pending);
+
+        builder.Property(t => t.TeacherCode)
+            .HasMaxLength(6);
+
+        builder.Property(t => t.RejectionReason)
+            .HasMaxLength(500);
+
         builder.HasOne(t => t.User)
             .WithOne(u => u.TeacherProfile)
             .HasForeignKey<TeacherProfile>(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(t => t.Subject)
+            .WithMany()
+            .HasForeignKey(t => t.SubjectId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Unique constraint on UserId
         builder.HasIndex(t => t.UserId)
+            .IsUnique();
+
+        builder.HasIndex(t => t.TeacherCode)
+            .IsUnique()
+            .HasFilter("[TeacherCode] IS NOT NULL");
+
+        builder.HasIndex(t => t.Status);
+
+        builder.HasIndex(t => t.PhoneNumber)
             .IsUnique();
     }
 }

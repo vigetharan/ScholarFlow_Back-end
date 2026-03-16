@@ -29,10 +29,20 @@ public class UpdateTeacherProfileCommandHandler : IRequestHandler<UpdateTeacherP
             return Result<TeacherProfileDto>.Failure("Teacher profile not found");
         }
 
+        var subjectExists = await _context.Subjects
+            .AnyAsync(s => s.Id == request.SubjectId, cancellationToken);
+
+        if (!subjectExists)
+        {
+            return Result<TeacherProfileDto>.Failure("Subject not found");
+        }
+
         // Update profile
         profile.FullName = request.FullName;
         profile.Qualification = request.Qualification;
-        profile.Bio = request.Bio;
+        profile.Bio = request.Bio ?? string.Empty;
+        profile.SubjectId = request.SubjectId;
+        profile.PhoneNumber = request.PhoneNumber;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -40,9 +50,16 @@ public class UpdateTeacherProfileCommandHandler : IRequestHandler<UpdateTeacherP
         var dto = new TeacherProfileDto
         {
             Id = profile.Id,
+            UserId = profile.UserId,
             FullName = profile.FullName,
             Qualification = profile.Qualification,
-            Bio = profile.Bio
+            Bio = profile.Bio,
+            SubjectId = profile.SubjectId,
+            PhoneNumber = profile.PhoneNumber,
+            Status = profile.Status.ToString(),
+            TeacherCode = profile.TeacherCode,
+            RejectionReason = profile.RejectionReason,
+            ReviewedAt = profile.ReviewedAt
         };
 
         return Result<TeacherProfileDto>.Success(dto);

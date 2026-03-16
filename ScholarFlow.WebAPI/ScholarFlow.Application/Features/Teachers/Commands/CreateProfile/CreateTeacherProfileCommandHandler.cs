@@ -30,6 +30,14 @@ public class CreateTeacherProfileCommandHandler : IRequestHandler<CreateTeacherP
             return Result<TeacherProfileDto>.Failure("Teacher profile already exists");
         }
 
+        var subjectExists = await _context.Subjects
+            .AnyAsync(s => s.Id == request.SubjectId, cancellationToken);
+
+        if (!subjectExists)
+        {
+            return Result<TeacherProfileDto>.Failure("Subject not found");
+        }
+
         // Create teacher profile
         var profile = new TeacherProfile
         {
@@ -37,7 +45,9 @@ public class CreateTeacherProfileCommandHandler : IRequestHandler<CreateTeacherP
             UserId = request.UserId,
             FullName = request.FullName,
             Qualification = request.Qualification,
-            Bio = request.Bio
+            Bio = request.Bio ?? string.Empty,
+            SubjectId = request.SubjectId,
+            PhoneNumber = request.PhoneNumber
         };
 
         _context.TeacherProfiles.Add(profile);
@@ -47,9 +57,16 @@ public class CreateTeacherProfileCommandHandler : IRequestHandler<CreateTeacherP
         var dto = new TeacherProfileDto
         {
             Id = profile.Id,
+            UserId = profile.UserId,
             FullName = profile.FullName,
             Qualification = profile.Qualification,
-            Bio = profile.Bio
+            Bio = profile.Bio,
+            SubjectId = profile.SubjectId,
+            PhoneNumber = profile.PhoneNumber,
+            Status = profile.Status.ToString(),
+            TeacherCode = profile.TeacherCode,
+            RejectionReason = profile.RejectionReason,
+            ReviewedAt = profile.ReviewedAt
         };
 
         return Result<TeacherProfileDto>.Success(dto);
