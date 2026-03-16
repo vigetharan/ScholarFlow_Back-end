@@ -6,6 +6,7 @@ using ScholarFlow.Application.Features.Questions.Commands.DeleteQuestion;
 using ScholarFlow.Application.Features.Questions.Commands.UpdateQuestion;
 using ScholarFlow.Application.Features.Questions.Queries.GetAllQuestions; 
 using ScholarFlow.Application.Features.Questions.Queries.GetQuestionsByPaper;
+using ScholarFlow.Application.Features.Questions.Queries.GetQuestionsByTopic;
 
 namespace ScholarFlow.WebAPI.Controllers;
 
@@ -35,6 +36,21 @@ public class QuestionsController : ControllerBase
 
         return result.IsSuccess 
             ? Ok(result.Data) 
+            : BadRequest(new { error = result.ErrorMessage });
+    }
+
+    /// <summary>
+    /// Get questions by topic with optional limit.
+    /// </summary>
+    [HttpGet("topic/{topicId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetByTopic(Guid topicId, [FromQuery] int? limit, CancellationToken cancellationToken)
+    {
+        var query = new GetQuestionsByTopicQuery { TopicId = topicId, Limit = limit };
+        var result = await _mediator.Send(query, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Data)
             : BadRequest(new { error = result.ErrorMessage });
     }
 

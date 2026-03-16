@@ -47,7 +47,8 @@ public class CreateTopicCommandHandler : IRequestHandler<CreateTopicCommand, Res
         {
             Id = Guid.NewGuid(),
             TopicName = request.TopicName,
-            SubjectId = request.SubjectId
+            SubjectId = request.SubjectId,
+            OrderIndex = request.OrderIndex
         };
 
         _context.Topics.Add(topic);
@@ -58,6 +59,7 @@ public class CreateTopicCommandHandler : IRequestHandler<CreateTopicCommand, Res
         {
             Id = topic.Id,
             TopicName = topic.TopicName,
+            OrderIndex = topic.OrderIndex,
             SubjectId = topic.SubjectId,
             SubjectName = subject.Name,
             SubTopicCount = 0

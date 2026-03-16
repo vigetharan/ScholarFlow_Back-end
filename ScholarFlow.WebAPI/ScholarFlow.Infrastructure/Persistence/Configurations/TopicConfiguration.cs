@@ -14,6 +14,9 @@ public class TopicConfiguration : AuditableEntityConfiguration<Topic>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(t => t.OrderIndex)
+            .IsRequired();
+
         builder.HasOne(t => t.Subject)
             .WithMany(s => s.Topics)
             .HasForeignKey(t => t.SubjectId)

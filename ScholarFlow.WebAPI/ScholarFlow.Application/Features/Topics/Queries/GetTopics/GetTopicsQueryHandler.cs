@@ -33,7 +33,8 @@ public class GetTopicsQueryHandler : IRequestHandler<GetTopicsQuery, Result<List
         }
 
         var topics = await query
-            .OrderBy(t => t.TopicName)
+            .OrderBy(t => t.OrderIndex)
+            .ThenBy(t => t.TopicName)
             .ToListAsync(cancellationToken);
 
         // Aggregate non-deleted subtopic counts per topic to avoid N+1 queries
@@ -49,6 +50,7 @@ public class GetTopicsQueryHandler : IRequestHandler<GetTopicsQuery, Result<List
         {
             Id = t.Id,
             TopicName = t.TopicName,
+            OrderIndex = t.OrderIndex,
             SubjectId = t.SubjectId,
             SubjectName = t.Subject?.Name ?? "",
             SubTopicCount = subtopicCounts.ContainsKey(t.Id) ? subtopicCounts[t.Id] : 0

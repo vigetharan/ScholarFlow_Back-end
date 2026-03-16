@@ -11,4 +11,5 @@ public class CreateTopicCommand : IRequest<Result<TopicDto>>
 {
     public string TopicName { get; set; } = string.Empty;
     public Guid SubjectId { get; set; }
+    public int OrderIndex { get; set; }
 }
