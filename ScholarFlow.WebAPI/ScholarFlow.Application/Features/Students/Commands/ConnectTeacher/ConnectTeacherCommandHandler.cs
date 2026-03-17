@@ -32,6 +32,11 @@ public class ConnectTeacherCommandHandler : IRequestHandler<ConnectTeacherComman
             return Result<StudentTeacherConnectionDto>.Failure("Invalid teacher code");
         }
 
+        if (teacherProfile.SubjectId != request.SubjectId)
+        {
+            return Result<StudentTeacherConnectionDto>.Failure("Teacher is not assigned to the selected subject");
+        }
+
         var studentExists = await _context.StudentProfiles
             .AnyAsync(s => s.UserId == request.StudentUserId, cancellationToken);
 

@@ -6,6 +6,7 @@ using ScholarFlow.Application.Features.Papers.Commands.DeletePaper;
 using ScholarFlow.Application.Features.Papers.Commands.UpdatePaper;
 using ScholarFlow.Application.Features.Papers.Queries.GetPaperById;
 using ScholarFlow.Application.Features.Papers.Queries.GetPapers;
+using ScholarFlow.Application.Features.Teachers.Queries.GetProfile;
 using ScholarFlow.Domain.Entities;
 using ScholarFlow.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -111,6 +112,20 @@ public class PapersController : ControllerBase
             && command.Type != PaperType.ModelPaper)
         {
             return BadRequest(new { error = "Teachers can only create Model Papers" });
+        }
+
+        if (string.Equals(userRole, "TEACHER", StringComparison.OrdinalIgnoreCase))
+        {
+            var teacherProfileResult = await _mediator.Send(new GetTeacherProfileQuery { UserId = userId }, cancellationToken);
+            if (!teacherProfileResult.IsSuccess)
+            {
+                return BadRequest(new { error = "Teacher profile not found" });
+            }
+
+            if (command.SubjectId != teacherProfileResult.Data.SubjectId)
+            {
+                return BadRequest(new { error = "Teachers can only create papers for their assigned subject" });
+            }
         }
 
         // Set creator

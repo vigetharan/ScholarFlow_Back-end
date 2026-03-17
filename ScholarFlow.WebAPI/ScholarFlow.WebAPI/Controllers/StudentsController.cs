@@ -121,6 +121,7 @@ public class StudentsController : ControllerBase
         var command = new ConnectTeacherCommand
         {
             StudentUserId = userId,
+            SubjectId = request.SubjectId,
             TeacherCode = request.TeacherCode ?? string.Empty,
         };
 
@@ -186,5 +187,6 @@ public class StudentsController : ControllerBase
 
 public class ConnectTeacherRequest
 {
+    public Guid SubjectId { get; set; }
     public string? TeacherCode { get; set; }
 }
